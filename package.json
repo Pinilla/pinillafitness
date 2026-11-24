@@ -1,0 +1,13 @@
+{
+  "name": "pinillafitness",
+  "version": "0.1.0",
+  "description": "A daily lift-or-stretch check-in with guided stretch timers, a calendar, and a 10 PM reminder.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "start": "node src/server.ts",
+    "test": "node --test \"test/**/*.test.ts\""
+  }
+}
