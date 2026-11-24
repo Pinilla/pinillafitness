@@ -1,132 +1,160 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="robots" content="noindex, nofollow">
-  <meta name="theme-color" content="#f4f6f3" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#171a18" media="(prefers-color-scheme: dark)">
-  <title>Fitness</title>
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="manifest" href="app.webmanifest">
-  <link rel="stylesheet" href="style.css">
-  <script type="module" src="app.js"></script>
-</head>
-<body>
-  <main id="login" class="login" hidden>
-    <h1>Fitness</h1>
-    <form id="login-form">
-      <label for="pin">PIN</label>
-      <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]*" maxlength="8" required>
-      <button type="submit" class="primary">Unlock</button>
-      <p id="login-error" class="error" role="alert"></p>
-    </form>
-  </main>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f4f6f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171a18" media="(prefers-color-scheme: dark)" />
+    <title>Fitness</title>
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <link rel="manifest" href="app.webmanifest" />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <main id="login" class="login" hidden>
+      <h1>Fitness</h1>
+      <form id="login-form">
+        <label for="username">Username</label>
+        <input
+          id="username"
+          type="text"
+          autocomplete="username"
+          autocapitalize="none"
+          spellcheck="false"
+          required
+        />
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required />
+        <button type="submit" class="primary">Log in</button>
+        <p id="login-error" class="error" role="alert"></p>
+      </form>
+    </main>
 
-  <main id="home" hidden>
-    <header class="top"><h1>Fitness</h1></header>
+    <main id="home" hidden>
+      <header class="top">
+        <h1>Fitness</h1>
+        <p class="account">
+          <span id="account-name"></span> · <button id="log-out" class="link">Log out</button>
+        </p>
+      </header>
 
-    <section class="card today" aria-labelledby="today-label">
-      <h2 id="today-label" class="today-label"></h2>
-      <p id="today-status" class="today-status" aria-live="polite"></p>
-      <div class="choices">
-        <button id="lift" class="choice lift" aria-pressed="false">Lift</button>
-        <button id="stretch" class="choice stretch" aria-expanded="false" aria-controls="routines">Stretch</button>
+      <section class="card today" aria-labelledby="today-label">
+        <h2 id="today-label" class="today-label"></h2>
+        <p id="today-status" class="today-status" aria-live="polite"></p>
+        <div class="choices">
+          <button id="lift" class="choice lift" aria-pressed="false">Lift</button>
+          <button
+            id="stretch"
+            class="choice stretch"
+            aria-expanded="false"
+            aria-controls="routines"
+          >
+            Stretch
+          </button>
+        </div>
+        <div id="routines" class="routines" hidden>
+          <a class="routine" href="#stretch-lower" data-routine="lower"
+            ><span>Lower body</span><span class="muted" data-length="lower"></span
+          ></a>
+          <a class="routine" href="#stretch-upper" data-routine="upper"
+            ><span>Upper body</span><span class="muted" data-length="upper"></span
+          ></a>
+          <a class="link" href="#times">Change stretch times</a>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="month-label">
+        <nav class="month-nav">
+          <button id="prev-month" class="icon-btn" aria-label="Previous month">‹</button>
+          <h2 id="month-label"></h2>
+          <button id="next-month" class="icon-btn" aria-label="Next month">›</button>
+        </nav>
+        <div class="weekdays" aria-hidden="true">
+          <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span
+          ><span>S</span>
+        </div>
+        <div id="calendar" class="calendar"></div>
+        <p class="legend">
+          <span><i class="dot lift"></i>Lift</span>
+          <span><i class="dot stretch"></i>Stretch</span>
+          <span><i class="dot missed"></i>Missed</span>
+        </p>
+        <p id="month-count" class="muted center"></p>
+      </section>
+
+      <section class="card reminders" aria-labelledby="reminder-heading">
+        <h2 id="reminder-heading">Reminder</h2>
+        <p id="reminder-status"></p>
+        <div class="row">
+          <button id="reminder-on" class="primary" hidden>Turn on reminders</button>
+          <button id="reminder-test" class="secondary" hidden>Send a test</button>
+          <button id="reminder-off" class="secondary" hidden>Turn off</button>
+        </div>
+      </section>
+    </main>
+
+    <main id="session" class="session" hidden>
+      <header class="session-top">
+        <button id="session-end" class="secondary">End</button>
+        <span id="session-progress" class="muted"></span>
+      </header>
+      <p id="session-phase" class="phase"></p>
+      <h1 id="session-name" class="session-name"></h1>
+      <p id="session-side" class="side"></p>
+      <p id="session-clock" class="clock" aria-live="off"></p>
+      <ol id="session-cues" class="cues"></ol>
+      <div class="controls">
+        <button id="session-back" class="secondary">Back</button>
+        <button id="session-pause" class="primary">Pause</button>
+        <button id="session-skip" class="secondary">Skip</button>
       </div>
-      <div id="routines" class="routines" hidden>
-        <a class="routine" href="#stretch-lower" data-routine="lower"><span>Lower body</span><span class="muted" data-length="lower"></span></a>
-        <a class="routine" href="#stretch-upper" data-routine="upper"><span>Upper body</span><span class="muted" data-length="upper"></span></a>
-        <a class="link" href="#times">Change stretch times</a>
-      </div>
-    </section>
+      <p id="session-next" class="muted center"></p>
+    </main>
 
-    <section class="card" aria-labelledby="month-label">
-      <nav class="month-nav">
-        <button id="prev-month" class="icon-btn" aria-label="Previous month">‹</button>
-        <h2 id="month-label"></h2>
-        <button id="next-month" class="icon-btn" aria-label="Next month">›</button>
-      </nav>
-      <div class="weekdays" aria-hidden="true"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
-      <div id="calendar" class="calendar"></div>
-      <p class="legend">
-        <span><i class="dot lift"></i>Lift</span>
-        <span><i class="dot stretch"></i>Stretch</span>
-        <span><i class="dot missed"></i>Missed</span>
-      </p>
-      <p id="month-count" class="muted center"></p>
-    </section>
+    <main id="finished" class="finished" hidden>
+      <h1>Nice work</h1>
+      <p id="finished-text"></p>
+      <a class="primary button" href="#">Back to today</a>
+    </main>
 
-    <section class="card reminders" aria-labelledby="reminder-heading">
-      <h2 id="reminder-heading">Reminder</h2>
-      <p id="reminder-status"></p>
-      <div class="row">
-        <button id="reminder-on" class="primary" hidden>Turn on reminders</button>
-        <button id="reminder-test" class="secondary" hidden>Send a test</button>
-        <button id="reminder-off" class="secondary" hidden>Turn off</button>
-      </div>
-    </section>
-  </main>
+    <main id="times" hidden>
+      <header class="top">
+        <a class="link" href="#">‹ Back</a>
+        <h1>Stretch times</h1>
+      </header>
+      <form id="times-form">
+        <div id="times-list"></div>
+        <button type="submit" class="primary wide">Save times</button>
+      </form>
+    </main>
 
-  <main id="session" class="session" hidden>
-    <header class="session-top">
-      <button id="session-end" class="secondary">End</button>
-      <span id="session-progress" class="muted"></span>
-    </header>
-    <p id="session-phase" class="phase"></p>
-    <h1 id="session-name" class="session-name"></h1>
-    <p id="session-side" class="side"></p>
-    <p id="session-clock" class="clock" aria-live="off"></p>
-    <ol id="session-cues" class="cues"></ol>
-    <div class="controls">
-      <button id="session-back" class="secondary">Back</button>
-      <button id="session-pause" class="primary">Pause</button>
-      <button id="session-skip" class="secondary">Skip</button>
-    </div>
-    <p id="session-next" class="muted center"></p>
-  </main>
+    <dialog id="day-dialog" class="sheet">
+      <form id="day-form" method="dialog">
+        <h2 id="day-title"></h2>
+        <label><input type="checkbox" name="activity" value="lift" /> Lift</label>
+        <label><input type="checkbox" name="activity" value="lower" /> Stretch, lower body</label>
+        <label><input type="checkbox" name="activity" value="upper" /> Stretch, upper body</label>
+        <div class="row">
+          <button value="cancel" class="secondary">Cancel</button>
+          <button value="save" class="primary">Save</button>
+        </div>
+      </form>
+    </dialog>
 
-  <main id="finished" class="finished" hidden>
-    <h1>Nice work</h1>
-    <p id="finished-text"></p>
-    <a class="primary button" href="#">Back to today</a>
-  </main>
+    <dialog id="end-dialog" class="sheet">
+      <form method="dialog">
+        <h2>End the routine?</h2>
+        <div class="stack">
+          <button value="check-in" class="primary">End and check in</button>
+          <button value="quit" class="secondary">End without checking in</button>
+          <button value="keep" class="secondary">Keep going</button>
+        </div>
+      </form>
+    </dialog>
 
-  <main id="times" hidden>
-    <header class="top">
-      <a class="link" href="#">‹ Back</a>
-      <h1>Stretch times</h1>
-    </header>
-    <form id="times-form">
-      <div id="times-list"></div>
-      <button type="submit" class="primary wide">Save times</button>
-    </form>
-  </main>
-
-  <dialog id="day-dialog" class="sheet">
-    <form id="day-form" method="dialog">
-      <h2 id="day-title"></h2>
-      <label><input type="checkbox" name="activity" value="lift"> Lift</label>
-      <label><input type="checkbox" name="activity" value="lower"> Stretch, lower body</label>
-      <label><input type="checkbox" name="activity" value="upper"> Stretch, upper body</label>
-      <div class="row">
-        <button value="cancel" class="secondary">Cancel</button>
-        <button value="save" class="primary">Save</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="end-dialog" class="sheet">
-    <form method="dialog">
-      <h2>End the routine?</h2>
-      <div class="stack">
-        <button value="check-in" class="primary">End and check in</button>
-        <button value="quit" class="secondary">End without checking in</button>
-        <button value="keep" class="secondary">Keep going</button>
-      </div>
-    </form>
-  </dialog>
-
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-</body>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
 </html>

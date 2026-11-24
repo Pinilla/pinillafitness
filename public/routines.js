@@ -1,4 +1,5 @@
 export const DEFAULT_SECONDS = 60;
+export const HOLD_LIMITS = { min: 5, max: 600, step: 5 };
 const FIRST_GET_READY_SECONDS = 10;
 const SWITCH_SIDES_SECONDS = 5;
 const SIDES = ["Left side", "Right side"];
@@ -117,16 +118,39 @@ export const ROUTINES = {
 };
 
 export function buildSteps(routineId, times) {
-  return ROUTINES[routineId].stretches.flatMap((stretch) => stepsFor(stretch, holdSeconds(stretch, times)));
+  return ROUTINES[routineId].stretches.flatMap((stretch) =>
+    stepsFor(stretch, holdSeconds(stretch, times)),
+  );
 }
 
 export function routineSeconds(routineId, times) {
   return buildSteps(routineId, times).reduce((sum, step) => sum + step.getReady + step.hold, 0);
 }
 
+export function isAllowedHold(seconds) {
+  return (
+    Number.isInteger(seconds) &&
+    seconds >= HOLD_LIMITS.min &&
+    seconds <= HOLD_LIMITS.max &&
+    seconds % HOLD_LIMITS.step === 0
+  );
+}
+
+export function stretchIds() {
+  return Object.values(ROUTINES).flatMap((routine) =>
+    routine.stretches.map((stretch) => stretch.id),
+  );
+}
+
 function stepsFor(stretch, hold) {
-  if (!stretch.sides) return [step(stretch, null, FIRST_GET_READY_SECONDS, hold)];
-  return SIDES.map((side, i) => step(stretch, side, i === 0 ? FIRST_GET_READY_SECONDS : SWITCH_SIDES_SECONDS, hold));
+  if (!stretch.sides) {
+    return [step(stretch, null, FIRST_GET_READY_SECONDS, hold)];
+  }
+  return SIDES.map((side, index) => step(stretch, side, getReadySeconds(index), hold));
+}
+
+function getReadySeconds(sideIndex) {
+  return sideIndex === 0 ? FIRST_GET_READY_SECONDS : SWITCH_SIDES_SECONDS;
 }
 
 function step(stretch, side, getReady, hold) {

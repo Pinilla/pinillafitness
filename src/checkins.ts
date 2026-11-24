@@ -1,50 +1,90 @@
-import { ROUTINES } from "../public/routines.js";
+import { appendFile } from "node:fs/promises";
+import { join } from "node:path";
+import { isDate } from "../public/dates.js";
+import { openJsonFile, type JsonFile } from "./json-file.ts";
 
 export const ACTIVITIES = ["lift", "lower", "upper"] as const;
 export type Activity = (typeof ACTIVITIES)[number];
 export type CheckIns = Record<string, Activity[]>;
-export type Times = Record<string, number>;
+export type CheckInBook = {
+  range(
+    from: unknown,
+    to: unknown,
+  ): { checkIns: CheckIns; first: string | null } | { error: string };
+  save(date: string, body: unknown): Promise<{ activities: Activity[] } | { error: string }>;
+  isCheckedIn(date: string): boolean;
+};
 
-const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const MIN_SECONDS = 5;
-const MAX_SECONDS = 600;
+export async function openCheckIns(dir: string): Promise<CheckInBook> {
+  const file = await openJsonFile<CheckIns>(join(dir, "checkins.json"), {});
+  const changeLog = join(dir, "changes.jsonl");
 
-export function isDate(text: string) {
-  return DATE.test(text) && !Number.isNaN(Date.parse(text + "T00:00:00Z"));
+  return {
+    range(from, to) {
+      if (!isDate(from) || !isDate(to)) {
+        return { error: "from and to must be YYYY-MM-DD dates." };
+      }
+      return {
+        checkIns: between(file.get(), from as string, to as string),
+        first: firstDate(file.get()),
+      };
+    },
+    async save(date, body) {
+      if (!isDate(date)) {
+        return { error: "That isn't a real date." };
+      }
+      const read = readActivities(body);
+      if ("error" in read) {
+        return read;
+      }
+      await replaceDay(file, changeLog, date, read.activities);
+      return read;
+    },
+    isCheckedIn(date) {
+      return (file.get()[date]?.length ?? 0) > 0;
+    },
+  };
 }
 
-export function readActivities(body: unknown): { activities: Activity[] } | { error: string } {
+async function replaceDay(
+  file: JsonFile<CheckIns>,
+  changeLog: string,
+  date: string,
+  activities: Activity[],
+) {
+  const before = file.get()[date] ?? [];
+  await file.set(withDay(file.get(), date, activities));
+  await logChange(changeLog, date, before, activities);
+}
+
+function readActivities(body: unknown): { activities: Activity[] } | { error: string } {
   const list = (body as { activities?: unknown } | null)?.activities;
-  if (!Array.isArray(list)) return { error: "activities must be a list." };
-  const unknown = list.find((a) => !ACTIVITIES.includes(a));
-  if (unknown !== undefined) return { error: `${JSON.stringify(unknown)} isn't lift, lower or upper.` };
-  return { activities: ACTIVITIES.filter((a) => list.includes(a)) };
-}
-
-export function readTimes(body: unknown): { times: Times } | { error: string } {
-  const times = (body as { times?: unknown } | null)?.times;
-  if (!times || typeof times !== "object" || Array.isArray(times)) return { error: "times must be an object." };
-  const known = stretchIds();
-  for (const [id, seconds] of Object.entries(times)) {
-    if (!known.has(id)) return { error: `${id} isn't a stretch.` };
-    if (!isWholeSeconds(seconds)) return { error: `Times must be whole seconds from ${MIN_SECONDS} to ${MAX_SECONDS}.` };
+  if (!Array.isArray(list)) {
+    return { error: "activities must be a list." };
   }
-  return { times: times as Times };
+  const unknown = list.find((activity) => !ACTIVITIES.includes(activity));
+  if (unknown !== undefined) {
+    return { error: `${JSON.stringify(unknown)} isn't lift, lower or upper.` };
+  }
+  return { activities: ACTIVITIES.filter((activity) => list.includes(activity)) };
 }
 
-export function checkInsBetween(checkIns: CheckIns, from: string, to: string): CheckIns {
-  return Object.fromEntries(Object.entries(checkIns).filter(([date]) => date >= from && date <= to));
+function between(checkIns: CheckIns, from: string, to: string): CheckIns {
+  return Object.fromEntries(
+    Object.entries(checkIns).filter(([date]) => date >= from && date <= to),
+  );
 }
 
-export function withDay(checkIns: CheckIns, date: string, activities: Activity[]): CheckIns {
-  const { [date]: _old, ...rest } = checkIns;
+function firstDate(checkIns: CheckIns) {
+  return Object.keys(checkIns).sort()[0] ?? null;
+}
+
+function withDay(checkIns: CheckIns, date: string, activities: Activity[]): CheckIns {
+  const { [date]: _replaced, ...rest } = checkIns;
   return activities.length ? { ...rest, [date]: activities } : rest;
 }
 
-function stretchIds() {
-  return new Set(Object.values(ROUTINES).flatMap((routine) => routine.stretches.map((s) => s.id)));
-}
-
-function isWholeSeconds(value: unknown) {
-  return Number.isInteger(value) && (value as number) >= MIN_SECONDS && (value as number) <= MAX_SECONDS;
+async function logChange(path: string, date: string, before: Activity[], after: Activity[]) {
+  const line = JSON.stringify({ at: new Date().toISOString(), date, before, after });
+  await appendFile(path, line + "\n");
 }

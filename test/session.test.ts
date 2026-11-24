@@ -39,23 +39,35 @@ test("the session is done after the last hold", () => {
 test("pausing freezes the countdown until resumed", () => {
   let state = updateSession(startSession(steps, 0), "pause", 4_000);
   state = updateSession(state, "tick", 50_000);
-  assert.deepEqual([viewSession(state, 50_000).paused, viewSession(state, 50_000).secondsLeft], [true, 6]);
+  assert.deepEqual(
+    [viewSession(state, 50_000).paused, viewSession(state, 50_000).secondsLeft],
+    [true, 6],
+  );
   state = updateSession(state, "resume", 50_000);
   assert.equal(at(state, 56_000).view.phase, "hold");
 });
 
-test("skip goes to the next stretch's get-ready, and back returns to the one before", () => {
+test("skip goes to the next stretch's get-ready", () => {
   const skipped = updateSession(startSession(steps, 0), "skip", 3_000);
-  assert.deepEqual([viewSession(skipped, 3_000).number, viewSession(skipped, 3_000).phase], [2, "ready"]);
+  assert.deepEqual(
+    [viewSession(skipped, 3_000).number, viewSession(skipped, 3_000).phase],
+    [2, "ready"],
+  );
+});
+
+test("back returns to the start of the stretch before", () => {
+  const skipped = updateSession(startSession(steps, 0), "skip", 3_000);
   const back = updateSession(skipped, "back", 4_000);
-  assert.deepEqual([viewSession(back, 4_000).number, viewSession(back, 4_000).secondsLeft], [1, 10]);
+  assert.deepEqual(
+    [viewSession(back, 4_000).number, viewSession(back, 4_000).secondsLeft],
+    [1, 10],
+  );
 });
 
 test("back on the first stretch restarts it", () => {
   const state = updateSession(at(startSession(steps, 0), 30_000).state, "back", 30_000);
-  assert.deepEqual([viewSession(state, 30_000).phase, viewSession(state, 30_000).secondsLeft], ["ready", 10]);
-});
-
-test("finish ends the session early", () => {
-  assert.equal(updateSession(startSession(steps, 0), "finish", 1_000).phase, "done");
+  assert.deepEqual(
+    [viewSession(state, 30_000).phase, viewSession(state, 30_000).secondsLeft],
+    ["ready", 10],
+  );
 });

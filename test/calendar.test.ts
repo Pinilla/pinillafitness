@@ -16,8 +16,14 @@ test("December's grid ends in the first week of January", () => {
 });
 
 test("a day shows lift, stretch or both from its check-ins", () => {
-  const checkIns = { "2026-11-02": ["lift"], "2026-11-03": ["upper"], "2026-11-04": ["lift", "lower"] };
-  const statuses = ["2026-11-02", "2026-11-03", "2026-11-04"].map((d) => dayStatus(d, "2026-11-24", checkIns, "2026-11-02"));
+  const checkIns = {
+    "2026-11-02": ["lift"],
+    "2026-11-03": ["upper"],
+    "2026-11-04": ["lift", "lower"],
+  };
+  const statuses = ["2026-11-02", "2026-11-03", "2026-11-04"].map((d) =>
+    dayStatus(d, "2026-11-24", checkIns, "2026-11-02"),
+  );
   assert.deepEqual(statuses, ["lift", "stretch", "both"]);
 });
 
@@ -29,6 +35,10 @@ test("a past day without a check-in is missed only after the first check-in ever
 });
 
 test("the month count includes only days in that month", () => {
-  const checkIns = { "2026-10-31": ["lift"], "2026-11-01": ["lift"], "2026-11-02": ["lower", "lift"] };
+  const checkIns = {
+    "2026-10-31": ["lift"],
+    "2026-11-01": ["lift"],
+    "2026-11-02": ["lower", "lift"],
+  };
   assert.equal(countCheckIns(checkIns, 2026, 10), 2);
 });

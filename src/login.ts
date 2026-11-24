@@ -1,5 +1,8 @@
 import type { IncomingMessage } from "node:http";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import type { Users } from "./users.ts";
+
+export type LoginResult = { username: string; cookie: string } | { status: number; error: string };
 
 const COOKIE = "fitness";
 const YEAR_SECONDS = 365 * 24 * 3600;
@@ -8,24 +11,39 @@ const ADDRESS_WINDOW_MS = 15 * 60_000;
 const FAILS_IN_TOTAL = 30;
 const TOTAL_WINDOW_MS = 60 * 60_000;
 
-export type LoginResult = { cookie: string } | { status: number; error: string };
-
-export function createLogin(pin: string, secret: Buffer) {
-  const token = createHmac("sha256", secret).update(pin).digest("base64url");
+export function createLogin(users: Users, secret: Buffer) {
   const fails = createFailCounter();
 
+  function signature(username: string) {
+    return createHmac("sha256", secret).update(`session:${username}`).digest("base64url");
+  }
+
   return {
-    isLoggedIn(req: IncomingMessage) {
-      return sameText(readCookie(req, COOKIE), token);
-    },
-    attempt(req: IncomingMessage, guess: unknown): LoginResult {
-      const address = clientAddress(req);
-      if (fails.tooMany(address)) return { status: 429, error: "Too many wrong PINs. Try again in 15 minutes." };
-      if (typeof guess !== "string" || !sameText(guess, pin)) {
-        fails.record(address);
-        return { status: 401, error: "That PIN isn't right." };
+    userOf(req: IncomingMessage): string | null {
+      const [username, signed] = splitSession(readCookie(req));
+      if (!username || !users.exists(username) || !sameText(signed, signature(username))) {
+        return null;
       }
-      return { cookie: loginCookie(req, token) };
+      return username;
+    },
+    async attempt(req: IncomingMessage, body: unknown): Promise<LoginResult> {
+      const address = clientAddress(req);
+      if (fails.tooMany(address)) {
+        return { status: 429, error: "Too many wrong passwords. Try again in 15 minutes." };
+      }
+      const { username, password } = (body ?? {}) as { username?: unknown; password?: unknown };
+      const verified = await users.verify(username, password);
+      if (!verified) {
+        fails.record(address);
+        return { status: 401, error: "That username or password isn't right." };
+      }
+      return {
+        username: verified,
+        cookie: sessionCookie(req, `${verified}.${signature(verified)}`, YEAR_SECONDS),
+      };
+    },
+    logoutCookie(req: IncomingMessage) {
+      return sessionCookie(req, "", 0);
     },
   };
 }
@@ -36,7 +54,7 @@ function createFailCounter() {
 
   function recent(times: number[], windowMs: number) {
     const now = Date.now();
-    return times.filter((t) => now - t < windowMs);
+    return times.filter((time) => now - time < windowMs);
   }
 
   return {
@@ -54,15 +72,25 @@ function createFailCounter() {
   };
 }
 
-function loginCookie(req: IncomingMessage, token: string) {
-  const secure = req.headers["x-forwarded-proto"] === "https" ? "; Secure" : "";
-  return `${COOKIE}=${token}; Path=/; Max-Age=${YEAR_SECONDS}; HttpOnly; SameSite=Strict${secure}`;
+function splitSession(value: string): [string, string] {
+  const dot = value.lastIndexOf(".");
+  if (dot <= 0) {
+    return ["", ""];
+  }
+  return [value.slice(0, dot), value.slice(dot + 1)];
 }
 
-function readCookie(req: IncomingMessage, name: string) {
+function sessionCookie(req: IncomingMessage, value: string, maxAgeSeconds: number) {
+  const secure = req.headers["x-forwarded-proto"] === "https" ? "; Secure" : "";
+  return `${COOKIE}=${value}; Path=/; Max-Age=${maxAgeSeconds}; HttpOnly; SameSite=Strict${secure}`;
+}
+
+function readCookie(req: IncomingMessage) {
   for (const part of (req.headers.cookie ?? "").split(";")) {
-    const i = part.indexOf("=");
-    if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
+    const equals = part.indexOf("=");
+    if (equals > 0 && part.slice(0, equals).trim() === COOKIE) {
+      return part.slice(equals + 1).trim();
+    }
   }
   return "";
 }
@@ -72,7 +100,7 @@ function clientAddress(req: IncomingMessage) {
 }
 
 function sameText(a: string, b: string) {
-  const x = Buffer.from(a);
-  const y = Buffer.from(b);
-  return x.length === y.length && timingSafeEqual(x, y);
+  const first = Buffer.from(a);
+  const second = Buffer.from(b);
+  return first.length === second.length && timingSafeEqual(first, second);
 }

@@ -4,11 +4,20 @@ import { buildSteps, routineSeconds } from "../public/routines.js";
 
 test("one-sided stretches get a step for each side, with a shorter get-ready for the second side", () => {
   const pigeon = buildSteps("lower", {}).filter((step) => step.id === "pigeon");
-  assert.deepEqual(pigeon.map((s) => [s.side, s.getReady, s.hold]), [["Left side", 10, 60], ["Right side", 5, 60]]);
+  assert.deepEqual(
+    pigeon.map((s) => [s.side, s.getReady, s.hold]),
+    [
+      ["Left side", 10, 60],
+      ["Right side", 5, 60],
+    ],
+  );
 });
 
 test("the lower body routine runs butterfly, straddle, then both sides of pigeon, lunge and splits", () => {
-  assert.deepEqual(buildSteps("lower", {}).map((s) => s.id), ["butterfly", "straddle", "pigeon", "pigeon", "lunge", "lunge", "splits", "splits"]);
+  assert.deepEqual(
+    buildSteps("lower", {}).map((s) => s.id),
+    ["butterfly", "straddle", "pigeon", "pigeon", "lunge", "lunge", "splits", "splits"],
+  );
 });
 
 test("a saved time replaces the default hold for that stretch only", () => {

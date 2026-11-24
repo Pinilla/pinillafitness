@@ -13,7 +13,6 @@ Environment=HOST=127.0.0.1
 Environment=PORT=3400
 Environment=TZ=America/Chicago
 Environment=FITNESS_DATA=/var/lib/pinillafitness
-EnvironmentFile=/etc/pinillafitness.env
 ExecStart=/opt/node/bin/node src/server.ts
 Restart=on-failure
 RestartSec=5

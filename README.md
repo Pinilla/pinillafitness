@@ -2,6 +2,14 @@
 
 A daily check-in at fitness.pinillaweb.org. Each day, tap Lift, or Stretch to run a timed stretch routine. A calendar shows every check-in, and if a day has none by 10 PM, the phone gets a push notification.
 
+## Accounts
+
+Each person logs in with a username and password and has their own check-ins, stretch times and reminders. Nobody sees anyone else's. Passwords are stored as scrypt hashes in `users.json`. To add a person or change a password, pipe the password into the script, then restart the app:
+
+```sh
+echo 'their password' | FITNESS_DATA=./data node src/add-user.ts <username>
+```
+
 ## Check-ins
 
 A day holds any of three activities: `lift`, `lower` (lower body stretch) and `upper` (upper body stretch). Lift checks in with one tap. Finishing a stretch routine checks in that routine, and ending one early asks whether to check in anyway. Tap any past day on the calendar to change it.
@@ -16,22 +24,22 @@ The timer counts from timestamps, so it stays right if the phone stalls the page
 
 ## Reminder
 
-Each phone turns reminders on from the home page, which subscribes it to web push. The server checks every minute. After 10 PM server time, if today has no check-in and no reminder went out yet, it sends one to every subscribed phone. The push carries no data, and the service worker shows a fixed notification. Subscriptions the push service reports gone are dropped.
+Each phone turns reminders on from the home page, which subscribes it to web push. A phone's reminders belong to whoever is logged in on it. The server checks every minute. After 10 PM server time, each person with no check-in today and no reminder yet gets one on their phones. The push carries no data, and the service worker shows a fixed notification. Subscriptions the push service reports gone are dropped.
 
 ## Running
 
-Node 24 runs the TypeScript directly, with no npm dependencies.
+Node 24 runs the TypeScript directly. The app has no runtime dependencies. ESLint and Prettier are dev dependencies for formatting only.
 
 ```sh
-FITNESS_PIN=1234 npm start
+npm start
 npm test
+npm run format
 ```
 
-| Variable | Meaning |
-|---|---|
-| `FITNESS_PIN` | Login PIN, 4 to 8 digits. Required |
-| `FITNESS_DATA` | Data folder, default `./data` |
-| `PORT`, `HOST` | Default `3400` on `127.0.0.1` |
+| Variable       | Meaning                                                     |
+| -------------- | ----------------------------------------------------------- |
+| `FITNESS_DATA` | Data folder, default `./data`                               |
+| `PORT`, `HOST` | Default `3400` on `127.0.0.1`                               |
 | `PUSH_CONTACT` | The VAPID contact, default `https://fitness.pinillaweb.org` |
 
-The data folder holds `checkins.json`, `times.json`, `subscriptions.json`, `reminded.json`, `changes.jsonl` (every check-in change), `push-key.json` (the VAPID key) and `secret` (signs the login cookie).
+The data folder holds `users.json`, `secret` (signs login cookies), `push-key.json` (the VAPID key), `subscriptions.json` (each phone's push endpoint and whose it is) and `reminded.json` (the last reminder date per person). Each person's own data is in `accounts/<username>/`: `checkins.json`, `times.json` and `changes.jsonl`, a log of every check-in change.

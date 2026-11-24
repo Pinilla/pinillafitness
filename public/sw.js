@@ -20,6 +20,8 @@ self.addEventListener("notificationclick", (event) => {
 
 async function openApp() {
   const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-  if (windows[0]) return windows[0].focus();
+  if (windows[0]) {
+    return windows[0].focus();
+  }
   return self.clients.openWindow("/");
 }

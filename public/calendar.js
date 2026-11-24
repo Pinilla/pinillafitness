@@ -1,14 +1,13 @@
-export function isoDate(date) {
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-}
+import { addDays, isoDate } from "./dates.js";
 
 export function monthGrid(year, month) {
   const first = new Date(year, month, 1);
-  const start = addDays(first, -mondayIndex(first));
   const weeks = [];
-  for (let monday = start; monday.getMonth() === month || monday < first; monday = addDays(monday, 7)) {
+  for (
+    let monday = mondayOnOrBefore(first);
+    startsInMonth(monday, first);
+    monday = addDays(monday, 7)
+  ) {
     weeks.push(weekFrom(monday, month));
   }
   return weeks;
@@ -16,34 +15,44 @@ export function monthGrid(year, month) {
 
 export function dayStatus(date, today, checkIns, first) {
   const activities = checkIns[date] ?? [];
-  if (activities.length) return kindOf(activities);
-  if (date >= today || first === null) return "open";
-  return date >= first ? "missed" : "open";
+  if (activities.length) {
+    return kindOf(activities);
+  }
+  if (date >= today || first === null || date < first) {
+    return "open";
+  }
+  return "missed";
 }
 
 export function countCheckIns(checkIns, year, month) {
-  const prefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
-  return Object.entries(checkIns).filter(([date, list]) => date.startsWith(prefix) && list.length).length;
+  const prefix = isoDate(new Date(year, month, 1)).slice(0, 8);
+  return Object.entries(checkIns).filter(
+    ([date, activities]) => date.startsWith(prefix) && activities.length,
+  ).length;
+}
+
+function mondayOnOrBefore(date) {
+  const daysSinceMonday = (date.getDay() + 6) % 7;
+  return addDays(date, -daysSinceMonday);
+}
+
+function startsInMonth(monday, first) {
+  return monday < first || monday.getMonth() === first.getMonth();
 }
 
 function weekFrom(monday, month) {
-  return Array.from({ length: 7 }, (_, i) => {
-    const date = addDays(monday, i);
-    return { date: isoDate(date), day: date.getDate(), inMonth: date.getMonth() === month };
-  });
+  return Array.from({ length: 7 }, (_, index) => dayCell(addDays(monday, index), month));
+}
+
+function dayCell(date, month) {
+  return { date: isoDate(date), day: date.getDate(), inMonth: date.getMonth() === month };
 }
 
 function kindOf(activities) {
   const lifted = activities.includes("lift");
   const stretched = activities.includes("lower") || activities.includes("upper");
-  if (lifted && stretched) return "both";
+  if (lifted && stretched) {
+    return "both";
+  }
   return lifted ? "lift" : "stretch";
-}
-
-function mondayIndex(date) {
-  return (date.getDay() + 6) % 7;
-}
-
-function addDays(date, days) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
 }
