@@ -118,7 +118,8 @@ function createSender(pusher: Pusher, subscriptions: JsonFile<Subscription[]>) {
 }
 
 function subscribedUsers(subscriptions: Subscription[]) {
-  return [...new Set(subscriptions.map((subscription) => subscription.username))];
+  const usernames = subscriptions.map((subscription) => subscription.username).filter(Boolean);
+  return [...new Set(usernames)];
 }
 
 function withoutEndpoint(subscriptions: Subscription[], endpoint: string) {

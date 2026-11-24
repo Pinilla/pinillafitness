@@ -1,5 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { openReminders } from "../src/reminders.ts";
 import { withTempDir } from "./helpers.ts";
 
@@ -60,6 +62,27 @@ test("a test reminder goes only to the asking person's phones", async () => {
 test("a phone that logs in as someone else moves to their reminders", async () => {
   await withReminders(["jack"], async (reminders, pushed) => {
     await reminders.subscribe("jack", { endpoint: "https://push.example.com/pinilla-phone" });
+    await reminders.check(afterTen);
+    assert.deepEqual(pushed, []);
+  });
+});
+
+test("a phone saved before accounts existed gets nothing until it logs in", async () => {
+  await withTempDir(async (dir) => {
+    await writeFile(
+      join(dir, "subscriptions.json"),
+      JSON.stringify([{ endpoint: "https://push.example.com/old" }]),
+    );
+    const pushed: string[] = [];
+    const reminders = await openReminders({
+      dir,
+      contact: "https://fitness.example",
+      isCheckedIn: async () => false,
+      post: (async (url: string) => {
+        pushed.push(url);
+        return new Response(null, { status: 201 });
+      }) as typeof fetch,
+    });
     await reminders.check(afterTen);
     assert.deepEqual(pushed, []);
   });
