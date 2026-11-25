@@ -28,13 +28,15 @@ Each phone turns reminders on from the home page, which subscribes it to web pus
 
 ## Running
 
-Node 24 runs the TypeScript directly. The app has no runtime dependencies. ESLint and Prettier are dev dependencies for formatting only.
+Node 24 runs the TypeScript directly. The app has no runtime dependencies. oxlint and Prettier are dev dependencies for formatting only.
 
 ```sh
 npm start
 npm test
 npm run format
 ```
+
+`npm install` also turns on a pre-commit hook, `.githooks/pre-commit`. It runs `npm run format`, stages the fixes in files you staged in full, and stops the commit if `npm run check-format` still fails.
 
 | Variable       | Meaning                                                     |
 | -------------- | ----------------------------------------------------------- |
