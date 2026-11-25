@@ -145,7 +145,7 @@ function renderSession(session, view) {
   byId("session-progress").textContent = `${view.number} of ${view.count}`;
   byId("session-phase").textContent = phaseText(view);
   byId("session-name").textContent = view.step.name;
-  byId("session-side").textContent = view.step.side ?? "";
+  byId("session-side").textContent = setAndSide(view.step);
   byId("session-clock").textContent = clockText(view.secondsLeft);
   byId("session-pause").textContent = view.paused ? "Resume" : "Pause";
   byId("session").dataset.phase = view.paused ? "paused" : view.phase;
@@ -157,7 +157,14 @@ function phaseText(view) {
   if (view.paused) {
     return "Paused";
   }
-  return view.phase === "ready" ? "Get ready" : "Hold";
+  if (view.phase === "hold") {
+    return "Hold";
+  }
+  return view.step.rest ? "Rest" : "Get ready";
+}
+
+function setAndSide(step) {
+  return [`Set ${step.set} of ${step.sets}`, step.side].filter(Boolean).join(" · ");
 }
 
 function clockText(seconds) {
@@ -168,9 +175,8 @@ function nextText(nextStep) {
   if (!nextStep) {
     return "Last one";
   }
-  return nextStep.side
-    ? `Next: ${nextStep.name}, ${nextStep.side.toLowerCase()}`
-    : `Next: ${nextStep.name}`;
+  const details = [nextStep.side?.toLowerCase(), `set ${nextStep.set}`].filter(Boolean);
+  return `Next: ${nextStep.name}, ${details.join(", ")}`;
 }
 
 function renderCues(step) {

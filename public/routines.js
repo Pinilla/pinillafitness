@@ -2,6 +2,8 @@ export const DEFAULT_SECONDS = 60;
 export const HOLD_LIMITS = { min: 5, max: 600, step: 5 };
 const FIRST_GET_READY_SECONDS = 10;
 const SWITCH_SIDES_SECONDS = 5;
+const REST_SECONDS = 30;
+const SETS = 2;
 const SIDES = ["Left side", "Right side"];
 
 export const ROUTINES = {
@@ -143,18 +145,33 @@ export function stretchIds() {
 }
 
 function stepsFor(stretch, hold) {
-  if (!stretch.sides) {
-    return [step(stretch, null, FIRST_GET_READY_SECONDS, hold)];
+  return setNumbers().flatMap((set) => setSteps(stretch, set, hold));
+}
+
+function setNumbers() {
+  return Array.from({ length: SETS }, (_, index) => index + 1);
+}
+
+function setSteps(stretch, set, hold) {
+  const sides = stretch.sides ? SIDES : [null];
+  return sides.map((side, sideIndex) => ({
+    id: stretch.id,
+    name: stretch.name,
+    cues: stretch.cues,
+    side,
+    set,
+    sets: SETS,
+    rest: set > 1 && sideIndex === 0,
+    getReady: getReadySeconds(set, sideIndex),
+    hold,
+  }));
+}
+
+function getReadySeconds(set, sideIndex) {
+  if (sideIndex > 0) {
+    return SWITCH_SIDES_SECONDS;
   }
-  return SIDES.map((side, index) => step(stretch, side, getReadySeconds(index), hold));
-}
-
-function getReadySeconds(sideIndex) {
-  return sideIndex === 0 ? FIRST_GET_READY_SECONDS : SWITCH_SIDES_SECONDS;
-}
-
-function step(stretch, side, getReady, hold) {
-  return { id: stretch.id, name: stretch.name, cues: stretch.cues, side, getReady, hold };
+  return set === 1 ? FIRST_GET_READY_SECONDS : REST_SECONDS;
 }
 
 function holdSeconds(stretch, times) {
