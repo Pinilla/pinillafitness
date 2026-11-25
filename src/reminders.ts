@@ -1,5 +1,4 @@
 import { join } from "node:path";
-import { isoDate } from "../public/dates.js";
 import { openJsonFile, type JsonFile } from "./json-file.ts";
 import { loadPusher, type Pusher } from "./push.ts";
 
@@ -20,7 +19,8 @@ type ReminderOptions = {
   isCheckedIn(username: string, date: string): Promise<boolean>;
   post?: typeof fetch;
 };
-type Subscription = { username: string; endpoint: string };
+type Subscription = { username: string; endpoint: string; timeZone?: string };
+type LocalClock = { date: string; hour: number };
 
 const REMINDER_HOUR = 22;
 const MAX_ENDPOINT_LENGTH = 2000;
@@ -52,7 +52,7 @@ export async function openReminders(options: ReminderOptions): Promise<Reminders
       }
       await subscriptions.set([
         ...withoutEndpoint(subscriptions.get(), endpoint),
-        { username, endpoint },
+        { username, endpoint, timeZone: readTimeZone(body) },
       ]);
       return { subscribed: true };
     },
@@ -72,23 +72,29 @@ export async function openReminders(options: ReminderOptions): Promise<Reminders
       return { sent };
     },
     async check(now) {
-      if (now.getHours() < REMINDER_HOUR) {
-        return;
-      }
-      for (const username of subscribedUsers(subscriptions.get())) {
-        await remindIfDue(username, isoDate(now));
+      for (const subscription of subscriptions.get().filter((s) => s.username)) {
+        await remindIfDue(subscription, localClock(now, subscription.timeZone));
       }
     },
   };
 
-  async function remindIfDue(username: string, date: string) {
-    if (reminded.get()[username] === date || (await options.isCheckedIn(username, date))) {
+  async function remindIfDue(subscription: Subscription, clock: LocalClock) {
+    if (clock.hour < REMINDER_HOUR || reminded.get()[subscription.endpoint] === clock.date) {
       return;
     }
-    await reminded.set({ ...reminded.get(), [username]: date });
-    console.log(
-      `${username} has no check-in for ${date}. Reminded ${await sender.pushTo(username)} phone(s).`,
-    );
+    if (await options.isCheckedIn(subscription.username, clock.date)) {
+      return;
+    }
+    await markReminded(subscription.endpoint, clock.date);
+    if (await sender.pushOne(subscription)) {
+      console.log(`${subscription.username} has no check-in for ${clock.date}. Reminded a phone.`);
+    }
+  }
+
+  async function markReminded(endpoint: string, date: string) {
+    const current = new Set(subscriptions.get().map((subscription) => subscription.endpoint));
+    const kept = Object.entries(reminded.get()).filter(([key]) => current.has(key));
+    await reminded.set({ ...Object.fromEntries(kept), [endpoint]: date });
   }
 }
 
@@ -105,6 +111,7 @@ function createSender(pusher: Pusher, subscriptions: JsonFile<Subscription[]>) {
   }
 
   return {
+    pushOne,
     async pushTo(username: string) {
       let sent = 0;
       for (const subscription of subscriptions.get().filter((s) => s.username === username)) {
@@ -115,11 +122,6 @@ function createSender(pusher: Pusher, subscriptions: JsonFile<Subscription[]>) {
       return sent;
     },
   };
-}
-
-function subscribedUsers(subscriptions: Subscription[]) {
-  const usernames = subscriptions.map((subscription) => subscription.username).filter(Boolean);
-  return [...new Set(usernames)];
 }
 
 function withoutEndpoint(subscriptions: Subscription[], endpoint: string) {
@@ -136,4 +138,35 @@ function readEndpoint(body: unknown) {
     return null;
   }
   return URL.canParse(endpoint) ? endpoint : null;
+}
+
+function readTimeZone(body: unknown) {
+  const timeZone = (body as { timeZone?: unknown } | null)?.timeZone;
+  if (typeof timeZone !== "string" || !isKnownTimeZone(timeZone)) {
+    return undefined;
+  }
+  return timeZone;
+}
+
+function isKnownTimeZone(timeZone: string) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function localClock(now: Date, timeZone: string | undefined): LocalClock {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((candidate) => candidate.type === type)?.value ?? "";
+  return { date: `${part("year")}-${part("month")}-${part("day")}`, hour: Number(part("hour")) };
 }

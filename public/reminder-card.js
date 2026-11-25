@@ -23,7 +23,7 @@ export function createReminderCard({ onError }) {
     }
     const subscription = await currentSubscription();
     if (subscription) {
-      await request("POST", "/api/reminders/subscribe", { endpoint: subscription.endpoint });
+      await saveSubscription(subscription);
     }
     show(subscription ? "on" : "off");
   }
@@ -46,7 +46,7 @@ export function createReminderCard({ onError }) {
       userVisibleOnly: true,
       applicationServerKey: base64UrlToBytes(info.publicKey),
     });
-    await request("POST", "/api/reminders/subscribe", { endpoint: subscription.endpoint });
+    await saveSubscription(subscription);
     show("on");
     showToast("Reminders are on.");
   }
@@ -82,6 +82,13 @@ export function createReminderCard({ onError }) {
   byId("reminder-test").addEventListener("click", safely(sendTest));
 
   return { setUp };
+}
+
+function saveSubscription(subscription) {
+  return request("POST", "/api/reminders/subscribe", {
+    endpoint: subscription.endpoint,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
 }
 
 function statusText(mode, hour) {

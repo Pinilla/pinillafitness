@@ -24,7 +24,7 @@ The timer counts from timestamps, so it stays right if the phone stalls the page
 
 ## Reminder
 
-Each phone turns reminders on from the home page, which subscribes it to web push. A phone's reminders belong to whoever is logged in on it. The server checks every minute. After 10 PM server time, each person with no check-in today and no reminder yet gets one on their phones. The push carries no data, and the service worker shows a fixed notification. Subscriptions the push service reports gone are dropped.
+Each phone turns reminders on from the home page, which subscribes it to web push. A phone's reminders belong to whoever is logged in on it. Each phone also sends its time zone, so the reminder comes at 10 PM where the phone is. A phone that hasn't sent one follows the server's clock. The server checks every minute. Once it's past 10 PM on a phone, and its person has no check-in for that day, the phone gets one reminder. The push carries no data, and the service worker shows a fixed notification. Subscriptions the push service reports gone are dropped.
 
 ## Running
 
