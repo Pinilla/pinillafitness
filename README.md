@@ -22,7 +22,7 @@ The lifts, their order and how much each goes up are in `public/lifts.js`. Every
 
 Each lift starts at the weight from the last day it was logged. If that day had 7 or more reps on all three sets, it starts 5 lb higher instead. Before a lift's first log the weight is blank, except pull-ups, which start at bodyweight with 0 lb added. A lift with no reps entered isn't saved. To start from an old log, log it on its past day from the calendar.
 
-The set boxes show last time's reps in grey, unless the weight went up. After a set is entered on today's page, a timer counts the rest for up to 15 minutes.
+The set boxes show last time's reps in grey, unless the weight went up. Filling in a set on today's page starts a 90-second rest countdown. It beeps for the last 3 seconds, beeps and vibrates at the end, and keeps the screen on while it runs.
 
 ## Stretch routines
 

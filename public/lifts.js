@@ -1,5 +1,6 @@
 export const SETS = 3;
 export const TOP_REPS = 7;
+export const REST_SECONDS = 90;
 export const REPS_LIMITS = { min: 0, max: 99, step: 1 };
 export const WEIGHT_LIMITS = { min: 0, max: 2000, step: 0.25 };
 

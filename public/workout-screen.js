@@ -2,18 +2,16 @@ import { request } from "./api.js";
 import { longDate, shortDate, today } from "./dates.js";
 import { byId, element } from "./dom.js";
 import { findLift, formatSets, REPS_LIMITS, TOP_REPS, WEIGHT_LIMITS } from "./lifts.js";
+import { createRestTimer } from "./rest-timer.js";
 
 const SAVE_DELAY_MS = 600;
-const REST_TICK_MS = 1000;
-const REST_SHOWN_MS = 15 * 60_000;
 
 export function createWorkoutScreen({ onCheckIn, onDone, onError }) {
   let date = null;
   let cards = [];
   let saveTimer = null;
   let saving = Promise.resolve();
-  let lastSetAt = null;
-  let restTimer = null;
+  const rest = createRestTimer();
 
   async function open(newDate) {
     date = newDate;
@@ -30,16 +28,16 @@ export function createWorkoutScreen({ onCheckIn, onDone, onError }) {
 
   function close() {
     saveNow();
-    stopRest();
+    rest.stop();
     date = null;
     cards = [];
     return saving;
   }
 
-  function recordEntry(card, enteredSet) {
+  function recordEntry(card, finishedSet) {
     showCardState(card);
-    if (enteredSet && date === today()) {
-      startRest();
+    if (finishedSet && date === today()) {
+      rest.start();
     }
     byId("workout-status").textContent = "";
     clearTimeout(saveTimer);
@@ -73,29 +71,6 @@ export function createWorkoutScreen({ onCheckIn, onDone, onError }) {
     }
   }
 
-  function startRest() {
-    lastSetAt = Date.now();
-    clearInterval(restTimer);
-    restTimer = setInterval(showRest, REST_TICK_MS);
-    showRest();
-  }
-
-  function showRest() {
-    const elapsed = Date.now() - lastSetAt;
-    if (elapsed > REST_SHOWN_MS) {
-      stopRest();
-      return;
-    }
-    byId("workout-rest").hidden = false;
-    byId("workout-rest-clock").textContent = clockText(Math.floor(elapsed / 1000));
-  }
-
-  function stopRest() {
-    clearInterval(restTimer);
-    restTimer = null;
-    byId("workout-rest").hidden = true;
-  }
-
   async function finish() {
     saveNow();
     await saving;
@@ -107,15 +82,17 @@ export function createWorkoutScreen({ onCheckIn, onDone, onError }) {
     onDone();
   }
 
-  function saveBeforeHiding() {
+  function followVisibility() {
     if (document.visibilityState === "hidden") {
       saveNow();
+    } else {
+      rest.holdScreenAgain();
     }
   }
 
   byId("workout-done").addEventListener("click", () => finish().catch(onError));
   byId("workout-check-in").addEventListener("click", () => checkInOnly().catch(onError));
-  document.addEventListener("visibilitychange", saveBeforeHiding);
+  document.addEventListener("visibilitychange", followVisibility);
 
   return { open, close };
 }
@@ -145,10 +122,19 @@ function liftCard(plan, onEntry) {
   ]);
   weight.addEventListener("input", changed);
   for (const input of sets) {
-    input.addEventListener("input", () => onEntry(card, input.value !== ""));
+    listenForSet(input, (finishedSet) => onEntry(card, finishedSet));
   }
   showCardState(card);
   return card;
+}
+
+function listenForSet(input, onChange) {
+  let wasEmpty = input.value === "";
+  input.addEventListener("input", () => {
+    const finishedSet = wasEmpty && input.value !== "";
+    wasEmpty = input.value === "";
+    onChange(finishedSet);
+  });
 }
 
 function notesFor(lift, plan) {
@@ -262,8 +248,4 @@ function readNumber(input) {
     return null;
   }
   return Number(input.value);
-}
-
-function clockText(seconds) {
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }

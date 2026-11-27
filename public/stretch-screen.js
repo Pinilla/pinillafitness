@@ -1,5 +1,7 @@
+import { minutesAndSeconds } from "./dates.js";
 import { byId, element, openDialog } from "./dom.js";
 import { buildSteps } from "./routines.js";
+import { createScreenLock } from "./screen-lock.js";
 import { startSession, updateSession, viewSession } from "./session.js";
 import { playCue } from "./sound.js";
 
@@ -10,8 +12,8 @@ export function createStretchScreen({ onFinished, onQuit }) {
   let routineId = null;
   let session = null;
   let timer = null;
-  let wakeLock = null;
   let pausedBeforeEnd = false;
+  const screen = createScreenLock();
 
   function start(id, times) {
     if (session && routineId === id) {
@@ -21,7 +23,7 @@ export function createStretchScreen({ onFinished, onQuit }) {
     routineId = id;
     session = startSession(buildSteps(id, times), Date.now());
     timer = setInterval(() => apply("tick"), TICK_MS);
-    keepScreenOn();
+    screen.hold();
     renderSession(session, viewSession(session, Date.now()));
   }
 
@@ -29,7 +31,7 @@ export function createStretchScreen({ onFinished, onQuit }) {
     clearInterval(timer);
     timer = null;
     session = null;
-    releaseScreen();
+    screen.release();
   }
 
   function apply(action) {
@@ -86,32 +88,13 @@ export function createStretchScreen({ onFinished, onQuit }) {
     return viewSession(session, Date.now()).paused;
   }
 
-  async function keepScreenOn() {
-    try {
-      wakeLock = (await navigator.wakeLock?.request("screen")) ?? null;
-    } catch {
-      wakeLock = null;
-    }
-  }
-
-  function releaseScreen() {
-    wakeLock?.release().catch(() => {});
-    wakeLock = null;
-  }
-
-  function keepScreenOnAgain() {
-    if (session) {
-      keepScreenOn();
-    }
-  }
-
   byId("session-pause").addEventListener("click", togglePause);
   byId("session-skip").addEventListener("click", () => apply("skip"));
   byId("session-back").addEventListener("click", () => apply("back"));
   byId("session-end").addEventListener("click", askToEnd);
   byId("end-dialog").addEventListener("close", answerEnd);
 
-  return { start, stop, keepScreenOnAgain };
+  return { start, stop, keepScreenOnAgain: screen.holdAgain };
 }
 
 function signalChange(before, after) {
@@ -146,7 +129,7 @@ function renderSession(session, view) {
   byId("session-phase").textContent = phaseText(view);
   byId("session-name").textContent = view.step.name;
   byId("session-side").textContent = setAndSide(view.step);
-  byId("session-clock").textContent = clockText(view.secondsLeft);
+  byId("session-clock").textContent = minutesAndSeconds(view.secondsLeft);
   byId("session-pause").textContent = view.paused ? "Resume" : "Pause";
   byId("session").dataset.phase = view.paused ? "paused" : view.phase;
   byId("session-next").textContent = nextText(session.steps[view.number]);
@@ -165,10 +148,6 @@ function phaseText(view) {
 
 function setAndSide(step) {
   return [`Set ${step.set} of ${step.sets}`, step.side].filter(Boolean).join(" · ");
-}
-
-function clockText(seconds) {
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
 function nextText(nextStep) {

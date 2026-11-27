@@ -526,6 +526,10 @@ a {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+.rest.over {
+  background: var(--accent);
+  color: var(--on-accent);
+}
 
 fieldset {
   border: 1px solid var(--line);
