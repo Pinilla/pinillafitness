@@ -1,7 +1,8 @@
 import { request } from "./api.js";
 import { countCheckIns, dayStatus, monthGrid } from "./calendar.js";
-import { fromIsoDate, isoDate } from "./dates.js";
+import { longDate, today } from "./dates.js";
 import { byId, element, openDialog } from "./dom.js";
+import { findLift, formatSets } from "./lifts.js";
 import { ROUTINES, routineSeconds } from "./routines.js";
 import { showToast } from "./toast.js";
 
@@ -9,14 +10,19 @@ const ACTIVITY_NAMES = { lift: "lift", lower: "lower body stretch", upper: "uppe
 
 export function createHome({ getTimes, onError }) {
   let checkIns = {};
+  let liftDays = {};
   let first = null;
   let month = currentMonth();
   let openDate = null;
 
   async function load() {
     const { from, to } = loadRange(month);
-    const data = await request("GET", `/api/checkins?from=${from}&to=${to}`);
+    const [data, lifts] = await Promise.all([
+      request("GET", `/api/checkins?from=${from}&to=${to}`),
+      request("GET", `/api/lifts?from=${from}&to=${to}`),
+    ]);
     checkIns = { ...outsideRange(checkIns, from, to), ...data.checkIns };
+    liftDays = { ...outsideRange(liftDays, from, to), ...lifts.lifts };
     first = data.first;
   }
 
@@ -37,16 +43,6 @@ export function createHome({ getTimes, onError }) {
     await request("PUT", `/api/checkins/${date}`, { activities });
     await load();
     render();
-  }
-
-  async function toggleLift() {
-    const current = activitiesOn(today());
-    const lifted = current.includes("lift");
-    await saveDay(
-      today(),
-      lifted ? current.filter((activity) => activity !== "lift") : [...current, "lift"],
-    );
-    showToast(lifted ? "Removed today's lift." : "Checked in: lift.");
   }
 
   async function moveMonth(by) {
@@ -93,13 +89,20 @@ export function createHome({ getTimes, onError }) {
     for (const box of dayCheckboxes()) {
       box.checked = activitiesOn(date).includes(box.value);
     }
+    renderDayLifts(liftDays[date] ?? {});
     openDialog("day-dialog");
   }
 
-  async function saveOpenDay() {
-    if (byId("day-dialog").returnValue !== "save") {
-      return;
+  async function answerDay() {
+    const answer = byId("day-dialog").returnValue;
+    if (answer === "lifts") {
+      location.hash = `#lift-${openDate}`;
+    } else if (answer === "save") {
+      await saveOpenDay();
     }
+  }
+
+  async function saveOpenDay() {
     const checked = dayCheckboxes()
       .filter((box) => box.checked)
       .map((box) => box.value);
@@ -115,7 +118,6 @@ export function createHome({ getTimes, onError }) {
     return (...args) => Promise.resolve(handler(...args)).catch(onError);
   }
 
-  byId("lift").addEventListener("click", safely(toggleLift));
   byId("stretch").addEventListener("click", toggleRoutines);
   byId("prev-month").addEventListener(
     "click",
@@ -125,7 +127,7 @@ export function createHome({ getTimes, onError }) {
     "click",
     safely(() => moveMonth(1)),
   );
-  byId("day-dialog").addEventListener("close", safely(saveOpenDay));
+  byId("day-dialog").addEventListener("close", safely(answerDay));
 
   return { load, render, checkInToday };
 }
@@ -133,7 +135,7 @@ export function createHome({ getTimes, onError }) {
 function renderToday(activities) {
   byId("today-label").textContent = longDate(today());
   byId("today-status").textContent = describeActivities(activities);
-  byId("lift").setAttribute("aria-pressed", String(activities.includes("lift")));
+  byId("lift").classList.toggle("done", activities.includes("lift"));
   byId("stretch").classList.toggle(
     "done",
     activities.includes("lower") || activities.includes("upper"),
@@ -151,6 +153,19 @@ function toggleRoutines() {
   const opening = byId("routines").hidden;
   byId("routines").hidden = !opening;
   byId("stretch").setAttribute("aria-expanded", String(opening));
+}
+
+function renderDayLifts(lifts) {
+  const items = Object.entries(lifts).map(([id, log]) => dayLiftItem(findLift(id), log));
+  byId("day-lifts").replaceChildren(...items);
+  byId("day-log-lifts").textContent = items.length ? "Edit lifts" : "Log lifts";
+}
+
+function dayLiftItem(lift, log) {
+  return element("li", {}, [
+    element("span", { textContent: lift.name }),
+    element("span", { className: "muted", textContent: formatSets(lift, log) }),
+  ]);
 }
 
 function dayCheckboxes() {
@@ -190,16 +205,4 @@ function outsideRange(checkIns, from, to) {
 function currentMonth() {
   const now = new Date();
   return { year: now.getFullYear(), month: now.getMonth() };
-}
-
-function today() {
-  return isoDate(new Date());
-}
-
-function longDate(date) {
-  return fromIsoDate(date).toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
 }

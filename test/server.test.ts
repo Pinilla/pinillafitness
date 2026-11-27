@@ -80,3 +80,12 @@ test("logging in tells the page who is logged in", async () => {
   const jack = (await logIn("jack", "jack-password")).cookie;
   assert.deepEqual((await call(jack, "GET", "/api/me")).body, { username: "jack" });
 });
+
+test("logging a lift checks in the day as a lift", async () => {
+  const pinilla = (await logIn("pinilla", "pinilla-password")).cookie;
+  await call(pinilla, "PUT", "/api/lifts/2026-11-20", {
+    lifts: { "overhead-press": { weight: 95, reps: [7, 7, 7] } },
+  });
+  const days = await call(pinilla, "GET", "/api/checkins?from=2026-11-20&to=2026-11-20");
+  assert.deepEqual(days.body.checkIns, { "2026-11-20": ["lift"] });
+});

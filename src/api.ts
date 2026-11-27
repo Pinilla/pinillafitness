@@ -26,6 +26,13 @@ export function createApi({ login, accounts, reminders }: Parts) {
       handle: async ({ account }) => ok(account.times.get()),
     },
     { method: "PUT", path: /^\/api\/times$/, handle: saveTimes },
+    { method: "GET", path: /^\/api\/lifts$/, handle: listLifts },
+    {
+      method: "GET",
+      path: /^\/api\/lifts\/([\d-]+)$/,
+      handle: async ({ match, account }) => resultReply(account.lifts.workout(match[1]!)),
+    },
+    { method: "PUT", path: /^\/api\/lifts\/([\d-]+)$/, handle: saveLifts },
     { method: "GET", path: /^\/api\/reminders$/, handle: async () => ok(reminders.info()) },
     { method: "POST", path: /^\/api\/reminders\/subscribe$/, handle: subscribe },
     { method: "POST", path: /^\/api\/reminders\/unsubscribe$/, handle: unsubscribe },
@@ -44,6 +51,16 @@ export function createApi({ login, accounts, reminders }: Parts) {
 
   async function saveTimes({ req, account }: Request) {
     return resultReply(await account.times.save(await readJson(req)));
+  }
+
+  async function listLifts({ url, account }: Request) {
+    return resultReply(
+      account.lifts.range(url.searchParams.get("from"), url.searchParams.get("to")),
+    );
+  }
+
+  async function saveLifts({ req, match, account }: Request) {
+    return resultReply(await account.lifts.save(match[1]!, await readJson(req)));
   }
 
   async function subscribe({ req, username }: Request) {

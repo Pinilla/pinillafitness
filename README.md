@@ -1,6 +1,6 @@
 # pinillafitness
 
-A daily check-in at fitness.pinillaweb.org. Each day, tap Lift, or Stretch to run a timed stretch routine. A calendar shows every check-in, and if a day has none by 10 PM, the phone gets a push notification.
+A daily check-in at fitness.pinillaweb.org. Each day, tap Lift to log a workout, or Stretch to run a timed stretch routine. A calendar shows every check-in, and if a day has none by 10 PM, the phone gets a push notification.
 
 ## Accounts
 
@@ -12,9 +12,17 @@ echo 'their password' | FITNESS_DATA=./data node src/add-user.ts <username>
 
 ## Check-ins
 
-A day holds any of three activities: `lift`, `lower` (lower body stretch) and `upper` (upper body stretch). Lift checks in with one tap. Finishing a stretch routine checks in that routine, and ending one early asks whether to check in anyway. Tap any past day on the calendar to change it.
+A day holds any of three activities: `lift`, `lower` (lower body stretch) and `upper` (upper body stretch). Logging a lift checks in `lift`, and "Check in without logging" on the lift page does it with no numbers. Finishing a stretch routine checks in that routine, and ending one early asks whether to check in anyway. Tap any past day on the calendar to change it, see its lifts, or log lifts for it.
 
 A past day with no check-in shows as missed, but only from the first check-in ever.
+
+## Lifts
+
+The lifts, their order and how much each goes up are in `public/lifts.js`. Everyone gets the same list. Each lift has a weight and three sets of reps. The page saves 0.6 seconds after the last change, and also when the phone hides the page.
+
+Each lift starts at the weight from the last day it was logged. If that day had 7 or more reps on all three sets, it starts 5 lb higher instead. Before a lift's first log the weight is blank, except pull-ups, which start at bodyweight with 0 lb added. A lift with no reps entered isn't saved. To start from an old log, log it on its past day from the calendar.
+
+The set boxes show last time's reps in grey, unless the weight went up. Filling in a set on today's page starts a 90-second rest countdown. It beeps for the last 3 seconds, beeps and vibrates at the end, and keeps the screen on while it runs.
 
 ## Stretch routines
 
@@ -44,4 +52,4 @@ npm run format
 | `PORT`, `HOST` | Default `3400` on `127.0.0.1`                               |
 | `PUSH_CONTACT` | The VAPID contact, default `https://fitness.pinillaweb.org` |
 
-The data folder holds `users.json`, `secret` (signs login cookies), `push-key.json` (the VAPID key), `subscriptions.json` (each phone's push endpoint and whose it is) and `reminded.json` (the last reminder date per person). Each person's own data is in `accounts/<username>/`: `checkins.json`, `times.json` and `changes.jsonl`, a log of every check-in change.
+The data folder holds `users.json`, `secret` (signs login cookies), `push-key.json` (the VAPID key), `subscriptions.json` (each phone's push endpoint and whose it is) and `reminded.json` (the last reminder date per person). Each person's own data is in `accounts/<username>/`: `checkins.json`, `times.json`, `lifts.json` (weight and reps per lift per day) and `changes.jsonl`, a log of every check-in change.

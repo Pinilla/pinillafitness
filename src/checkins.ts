@@ -12,6 +12,7 @@ export type CheckInBook = {
     to: unknown,
   ): { checkIns: CheckIns; first: string | null } | { error: string };
   save(date: string, body: unknown): Promise<{ activities: Activity[] } | { error: string }>;
+  add(date: string, activity: Activity): Promise<void>;
   isCheckedIn(date: string): boolean;
 };
 
@@ -40,6 +41,12 @@ export async function openCheckIns(dir: string): Promise<CheckInBook> {
       await replaceDay(file, changeLog, date, read.activities);
       return read;
     },
+    async add(date, activity) {
+      const current = file.get()[date] ?? [];
+      if (!current.includes(activity)) {
+        await replaceDay(file, changeLog, date, withActivity(current, activity));
+      }
+    },
     isCheckedIn(date) {
       return (file.get()[date]?.length ?? 0) > 0;
     },
@@ -67,6 +74,10 @@ function readActivities(body: unknown): { activities: Activity[] } | { error: st
     return { error: `${JSON.stringify(unknown)} isn't lift, lower or upper.` };
   }
   return { activities: ACTIVITIES.filter((activity) => list.includes(activity)) };
+}
+
+function withActivity(activities: Activity[], added: Activity) {
+  return ACTIVITIES.filter((activity) => activity === added || activities.includes(activity));
 }
 
 function between(checkIns: CheckIns, from: string, to: string): CheckIns {

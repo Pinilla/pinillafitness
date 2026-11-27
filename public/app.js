@@ -1,4 +1,5 @@
 import { LoggedOut, request } from "./api.js";
+import { isDate, today } from "./dates.js";
 import { byId } from "./dom.js";
 import { createHome } from "./home.js";
 import { createReminderCard } from "./reminder-card.js";
@@ -7,9 +8,12 @@ import { unlockSound } from "./sound.js";
 import { createStretchScreen } from "./stretch-screen.js";
 import { createTimesPage } from "./times-page.js";
 import { showToast } from "./toast.js";
+import { createWorkoutScreen } from "./workout-screen.js";
 
-const VIEWS = ["login", "home", "session", "finished", "times"];
+const VIEWS = ["login", "home", "session", "finished", "times", "workout"];
 const ROUTINE_HASH_PREFIX = "#stretch-";
+const TODAYS_LIFT_HASH = "#lift";
+const LIFT_HASH_PREFIX = "#lift-";
 
 let times = {};
 
@@ -18,6 +22,11 @@ const reminderCard = createReminderCard({ onError: reportError });
 const stretchScreen = createStretchScreen({
   onFinished: (routineId) => finishRoutine(routineId).catch(reportError),
   onQuit: () => goTo(""),
+});
+const workoutScreen = createWorkoutScreen({
+  onCheckIn: () => home.checkInToday("lift"),
+  onDone: () => goTo(""),
+  onError: reportError,
 });
 const timesPage = createTimesPage({
   getTimes: () => times,
@@ -89,7 +98,17 @@ function routineInHash(hash) {
   return Object.hasOwn(ROUTINES, routineId ?? "") ? routineId : null;
 }
 
+function liftDateInHash(hash) {
+  if (hash === TODAYS_LIFT_HASH) {
+    return today();
+  }
+  const date = hash.startsWith(LIFT_HASH_PREFIX) ? hash.slice(LIFT_HASH_PREFIX.length) : null;
+  return isDate(date) && date <= today() ? date : null;
+}
+
 function route() {
+  const wasLifting = !byId("workout").hidden;
+  const workoutSaved = workoutScreen.close();
   const routineId = routineInHash(location.hash);
   if (routineId) {
     stretchScreen.start(routineId, times);
@@ -97,7 +116,11 @@ function route() {
     return;
   }
   stretchScreen.stop();
-  if (location.hash === "#finished") {
+  const liftDate = liftDateInHash(location.hash);
+  if (liftDate) {
+    showView("workout");
+    workoutScreen.open(liftDate).catch(reportError);
+  } else if (location.hash === "#finished") {
     showView("finished");
   } else if (location.hash === "#times") {
     timesPage.render();
@@ -105,6 +128,9 @@ function route() {
   } else {
     home.render();
     showView("home");
+    if (wasLifting) {
+      workoutSaved.then(refreshHome);
+    }
   }
 }
 
@@ -119,11 +145,15 @@ function refreshWhenShown() {
   }
   stretchScreen.keepScreenOnAgain();
   if (!byId("home").hidden) {
-    home
-      .load()
-      .then(() => home.render())
-      .catch(reportError);
+    refreshHome();
   }
+}
+
+function refreshHome() {
+  home
+    .load()
+    .then(() => home.render())
+    .catch(reportError);
 }
 
 async function start() {

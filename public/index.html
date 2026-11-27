@@ -45,7 +45,7 @@
         <h2 id="today-label" class="today-label"></h2>
         <p id="today-status" class="today-status" aria-live="polite"></p>
         <div class="choices">
-          <button id="lift" class="choice lift" aria-pressed="false">Lift</button>
+          <a id="lift" class="choice lift" href="#lift">Lift</a>
           <button
             id="stretch"
             class="choice stretch"
@@ -120,6 +120,22 @@
       <a class="primary button" href="#">Back to today</a>
     </main>
 
+    <main id="workout" class="workout" hidden>
+      <header class="top">
+        <a class="link" href="#">‹ Back</a>
+        <h1>Lift</h1>
+      </header>
+      <p class="workout-day">
+        <span id="workout-date"></span> <span id="workout-status" class="muted"></span>
+      </p>
+      <div id="workout-lifts"></div>
+      <div class="stack">
+        <button id="workout-done" class="primary">Done</button>
+        <button id="workout-check-in" class="secondary">Check in without logging</button>
+      </div>
+      <p id="workout-rest" class="rest" role="timer" hidden></p>
+    </main>
+
     <main id="times" hidden>
       <header class="top">
         <a class="link" href="#">‹ Back</a>
@@ -137,6 +153,8 @@
         <label><input type="checkbox" name="activity" value="lift" /> Lift</label>
         <label><input type="checkbox" name="activity" value="lower" /> Stretch, lower body</label>
         <label><input type="checkbox" name="activity" value="upper" /> Stretch, upper body</label>
+        <ul id="day-lifts" class="day-lifts"></ul>
+        <button id="day-log-lifts" value="lifts" class="link">Log lifts</button>
         <div class="row">
           <button value="cancel" class="secondary">Cancel</button>
           <button value="save" class="primary">Save</button>
