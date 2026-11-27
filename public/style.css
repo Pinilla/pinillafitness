@@ -187,6 +187,9 @@ a {
   gap: 12px;
 }
 .choice {
+  display: block;
+  text-align: center;
+  text-decoration: none;
   border: 0;
   border-radius: 14px;
   padding: 24px 8px;
@@ -209,7 +212,6 @@ a {
     color: #111;
   }
 }
-.choice[aria-pressed="true"]::after,
 .choice.done::after {
   content: " ✓";
 }
@@ -421,6 +423,110 @@ a {
   color: var(--muted);
 }
 
+.workout-day {
+  margin: -4px 0 16px;
+}
+#workout-status {
+  font-size: 0.85rem;
+}
+.lift-card h2 {
+  font-size: 1.15rem;
+}
+.lift-card.done h2::after {
+  content: " ✓";
+  color: var(--accent);
+}
+.note {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+}
+.go-up {
+  color: var(--accent);
+  font-weight: 600;
+}
+.weight-row {
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 12px;
+}
+.weight-row .icon-btn {
+  width: 48px;
+  height: 48px;
+}
+.weight-field {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+}
+.weight-field input {
+  width: 4.2em;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+.sets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.set {
+  display: grid;
+  gap: 4px;
+  text-align: center;
+  font-size: 0.85rem;
+}
+.set input {
+  font-size: 1.3rem;
+  font-weight: 600;
+  width: 100%;
+}
+.weight-field input,
+.set input {
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.weight-field input:invalid,
+.set input:invalid {
+  border-color: var(--error);
+}
+.set input::placeholder {
+  color: var(--muted);
+  opacity: 0.55;
+  font-weight: 400;
+}
+.weight-field input,
+.set input {
+  appearance: textfield;
+}
+.weight-field input::-webkit-inner-spin-button,
+.set input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+.lift-card .error {
+  min-height: 0;
+  margin-top: 8px;
+  font-size: 0.9rem;
+}
+.rest {
+  position: sticky;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  margin: 16px auto 0;
+  width: fit-content;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 fieldset {
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -480,6 +586,26 @@ legend {
   height: 22px;
   accent-color: var(--accent);
 }
+.day-lifts {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+.day-lifts li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.95rem;
+}
+.day-lifts li .muted {
+  text-align: right;
+}
+#day-log-lifts {
+  padding: 10px 0 0;
+}
+
 .sheet .row {
   justify-content: flex-end;
   margin-top: 12px;

@@ -73,3 +73,15 @@ test("every change is logged with the day before and after", async () => {
     });
   });
 });
+
+test("adding an activity keeps the day's other activities", async () => {
+  await withTempDir(async (dir) => {
+    const book = await openCheckIns(dir);
+    await book.save("2026-11-24", { activities: ["upper"] });
+    await book.add("2026-11-24", "lift");
+    assert.deepEqual(book.range("2026-11-24", "2026-11-24"), {
+      checkIns: { "2026-11-24": ["lift", "upper"] },
+      first: "2026-11-24",
+    });
+  });
+});

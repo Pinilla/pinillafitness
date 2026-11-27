@@ -21,3 +21,23 @@ export function fromIsoDate(text) {
 export function addDays(date, days) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
 }
+
+export function today() {
+  return isoDate(new Date());
+}
+
+export function longDate(text) {
+  return fromIsoDate(text).toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+export function shortDate(text) {
+  return fromIsoDate(text).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}

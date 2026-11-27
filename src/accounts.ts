@@ -1,9 +1,10 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { openCheckIns, type CheckInBook } from "./checkins.ts";
+import { openLifts, type LiftBook } from "./lifts.ts";
 import { openTimes, type TimeBook } from "./times.ts";
 
-export type Account = { checkIns: CheckInBook; times: TimeBook };
+export type Account = { checkIns: CheckInBook; times: TimeBook; lifts: LiftBook };
 export type Accounts = { get(username: string): Promise<Account> };
 
 export function openAccounts(dir: string): Accounts {
@@ -21,5 +22,7 @@ export function openAccounts(dir: string): Accounts {
 
 async function openAccount(dir: string): Promise<Account> {
   await mkdir(dir, { recursive: true });
-  return { checkIns: await openCheckIns(dir), times: await openTimes(dir) };
+  const checkIns = await openCheckIns(dir);
+  const lifts = await openLifts({ dir, checkIn: (date) => checkIns.add(date, "lift") });
+  return { checkIns, times: await openTimes(dir), lifts };
 }
